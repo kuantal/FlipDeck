@@ -12,20 +12,20 @@
 
 <br/>
 
-> Turn your Flipper Zero into a compact **5-button macro pad** — control media, system shortcuts, browser, VS Code, OBS, gaming, Photoshop, Window management and custom text macros over USB HID. **3 switchable profiles. On-device macro editor. Live USB plug/unplug detection. No drivers required.**
+> Turn your Flipper Zero into a compact **5-button macro pad** — control media, system shortcuts, browser, VS Code, OBS, gaming, Photoshop, Window management, **numeric entry** and custom text macros over USB HID. **3 switchable profiles. On-device macro editor. Live USB plug/unplug detection. No drivers required.**
 
 <br/>
 
 ```
 ┌─────────────────────────────┐
-│  [1/9] MEDIA   ┌──────┐     │  ← last-action flash pill
+│  [1/10] MEDIA  ┌──────┐     │  ← last-action flash pill
 │          Vol+  │ Vol+ │     │
 │  Prev   Play/Pause   Next   │
 │          Vol-               │
 │  Back:Menu      LongL/R:Pg  │
 └─────────────────────────────┘
   Flipper Zero 128×64 OLED
-  v2.0 — 9 pages · 45 shortcuts
+  v2.2 — 10 pages · 50 shortcuts
 ```
 
 </div>
@@ -193,6 +193,17 @@
 | ⬅️ Left | Snap Left | `Win + ←` |
 | ➡️ Right | Snap Right | `Win + →` |
 | 🔘 OK | Next Virtual Desktop | `Ctrl + Win + →` |
+
+### 🔢 Page 10 — NUMPAD
+| Direction | Types | Description |
+|-----------|--------|----------|
+| ⬆️ Up | `123` | Digits 1-2-3 |
+| ⬇️ Down | `456` | Digits 4-5-6 |
+| ⬅️ Left | `789` | Digits 7-8-9 |
+| ➡️ Right | `0` | Zero digit |
+| 🔘 OK | `.` | Decimal point |
+
+> **Use Case:** Quick number entry without typing each digit manually. Combines ActionTypeText for fast multi-digit sequences.
 
 ---
 

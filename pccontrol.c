@@ -238,6 +238,15 @@ static Page PAGES[] = {
       {ActionKey, HID_WIN_RIGHT_KEY, NULL, "Snap>"  },
       {ActionKey, HID_CTRL_WIN_RIGHT,NULL, "NxDesk" },
     },
+
+    /* 9 -- NUMPAD */
+    { "NUMPAD",
+      {ActionTypeText, 0, "123", "123"  },
+      {ActionTypeText, 0, "456", "456"  },
+      {ActionTypeText, 0, "789", "789"  },
+      {ActionTypeText, 0, "0",   "0"    },
+      {ActionTypeText, 0, ".",   "Dot"  },
+    },
 };
 
 #define PAGE_COUNT ((uint8_t)(sizeof(PAGES) / sizeof(PAGES[0])))
@@ -272,12 +281,12 @@ static const char HELP[HELP_SCREENS][HELP_LINES][HELP_LINE_LEN] = {
         "3:Browser 4:VSCode",
         "5:OBS    6:Macro",
     },
-    /* 3 - Pages 7-9 */
+    /* 3 - Pages 7-10 */
     {
-        "=PAGES 7-9=",
-        "7:Gaming",
-        "8:Photoshop",
+        "=PAGES 7-10=",
+        "7:Gaming 8:Photshp",
         "9:Win WM",
+        "10:Numpad",
     },
     /* 4 - Macro editor */
     {
