@@ -64,6 +64,38 @@
       "left":  "Email",
       "right": "Phone",
       "ok":    "GitHub"
+    },
+    "gaming": {
+      "name": "GAMING",
+      "up":    "PTT",
+      "down":  "Mute",
+      "left":  "Scrnshot",
+      "right": "Overlay",
+      "ok":    "Fullscr"
+    },
+    "photoshop": {
+      "name": "PHOTOSHP",
+      "up":    "Zoom+",
+      "down":  "Zoom-",
+      "left":  "Undo",
+      "right": "History",
+      "ok":    "Save As"
+    },
+    "winwm": {
+      "name": "WIN WM",
+      "up":    "Maximze",
+      "down":  "Minimize",
+      "left":  "<Snap",
+      "right": "Snap>",
+      "ok":    "NxDesk"
+    },
+    "numpad": {
+      "name": "NUMPAD",
+      "up":    "123",
+      "down":  "456",
+      "left":  "789",
+      "right": "0",
+      "ok":    "Dot"
     }
   },
   "help_screens": [
