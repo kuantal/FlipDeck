@@ -12,7 +12,7 @@
 
 <br/>
 
-> Turn your Flipper Zero into a compact **5-button macro pad** — control media, system shortcuts, browser, VS Code, OBS, gaming, Photoshop, Window management and custom text macros over USB HID. **3 switchable profiles. On-device macro editor. No drivers required.**
+> Turn your Flipper Zero into a compact **5-button macro pad** — control media, system shortcuts, browser, VS Code, OBS, gaming, Photoshop, Window management and custom text macros over USB HID. **3 switchable profiles. On-device macro editor. Live USB plug/unplug detection. No drivers required.**
 
 <br/>
 
@@ -64,7 +64,8 @@
 | 🔁 **Hold-to-repeat** | Hold Up/Down to repeatedly fire that action |
 | 📳 **Haptic feedback** | Vibration on every command |
 | 🔌 **Zero-driver** | Pure USB HID — works on Windows, macOS and Linux |
-| 📖 **Built-in help** | 6-screen help guide accessible from any state |
+| � **Live USB detection** | VBUS checked every 2 s; overlay shown + HID blocked when cable is removed |
+| �📖 **Built-in help** | 6-screen help guide accessible from any state |
 | 🌐 **i18n-ready** | All strings centralised in `lang_en.json` |
 
 ---
@@ -91,6 +92,18 @@
 | 2 | **On-device macro editor** | Edit Up/Down macros directly on Flipper — no PC needed |
 | 3 | **Per-profile SD files** | Each profile saves to its own `macros_0/1/2.txt` |
 | 4 | **Profile badge** | Active profile (P1/P2/P3) shown in menu title bar |
+
+---
+
+## 🆕 What's New in v2.2
+
+| # | Feature | Details |
+|---|---|---|
+| 1 | **Live USB detection** | VBUS voltage checked every 2 s via `furi_hal_power_get_usb_voltage()` |
+| 2 | **Disconnect overlay** | Full-screen "USB Disconnected / Plug in USB-C cable" banner on all screens |
+| 3 | **Auto-resume** | Reconnecting USB triggers instant HID re-init + single vibration |
+| 4 | **Cold-start handling** | App opens without USB connected — shows overlay until cable is inserted |
+| 5 | **USB badge in page view** | Filled **USB** badge = connected; outline **- -** badge = disconnected |
 
 ---
 
@@ -418,8 +431,7 @@ Contributions are welcome!
 - 🔢 Numpad page (`ActionTypeText` with digits)
 - 🌐 Multi-language support (new `lang_xx.json`)
 - ✏️ Full 5-slot on-device editor (Left/Right/OK slots)
-- 🔵 BLE HID mode fallback when USB is disconnected
-- 🗂️ More profile slots (via SD config)
+- ️ More profile slots (via SD config)
 
 ---
 
