@@ -131,15 +131,16 @@
     }
   ],
   "macros": {
-    "greeting_text":  "Hello,\nHow are you?\n",
+    "_comment": "Default macro labels and texts. Format in SD: label|text",
     "greeting_label": "Hello",
+    "greeting_text":  "Hello,\nHow are you?\n",
+    "signoff_label":  "SignOff",
     "signoff_text":   "Best regards,\n",
-    "signoff_label":  "Sign Off",
-    "email_text":     "admin@example.com",
     "email_label":    "Email",
-    "phone_text":     "+1 555 000 0000",
+    "email_text":     "admin@example.com",
     "phone_label":    "Phone",
-    "github_text":    "https://github.com/",
-    "github_label":   "GitHub"
+    "phone_text":     "+1 555 000 0000",
+    "github_label":   "GitHub",
+    "github_text":    "https://github.com/"
   }
 }

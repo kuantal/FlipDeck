@@ -12,6 +12,8 @@
 #include <furi_hal_usb_hid.h>
 #include <furi_hal_usb.h>
 #include <gui/gui.h>
+#include <gui/view_dispatcher.h>
+#include <gui/modules/text_input.h>
 #include <input/input.h>
 #include <notification/notification_messages.h>
 #include <stdlib.h>
@@ -129,6 +131,16 @@ static char macro_buf[MACRO_COUNT][MACRO_LEN] = {
     "https://github.com/",
 };
 
+/* Default labels; overwritten if macros.txt exists on SD card */
+#define LABEL_LEN 22  /* Max label length (21 chars + null) */
+static char macro_label_buf[MACRO_COUNT][LABEL_LEN] = {
+    "Hello",
+    "SignOff",
+    "Email",
+    "Phone",
+    "GitHub",
+};
+
 /* ──────────────────────────────────────────────────────────────────
    Action Model
    ────────────────────────────────────────────────────────────────── */
@@ -203,13 +215,13 @@ static Page PAGES[] = {
       {ActionKey, HID_CTRL_SHIFT_R,   NULL, "Record" },
     },
 
-    /* 5 -- MACRO (text pointers patched from macro_buf[] at runtime) */
+    /* 5 -- MACRO (text+label pointers patched from macro_buf[] at runtime) */
     { "MACRO",
-      {ActionTypeText, 0, NULL, "Hello"  },
-      {ActionTypeText, 0, NULL, "SignOff"},
-      {ActionTypeText, 0, NULL, "Email"  },
-      {ActionTypeText, 0, NULL, "Phone"  },
-      {ActionTypeText, 0, NULL, "GitHub" },
+      {ActionTypeText, 0, NULL, NULL},
+      {ActionTypeText, 0, NULL, NULL},
+      {ActionTypeText, 0, NULL, NULL},
+      {ActionTypeText, 0, NULL, NULL},
+      {ActionTypeText, 0, NULL, NULL},
     },
 
     /* 6 -- GAMING */
@@ -237,15 +249,6 @@ static Page PAGES[] = {
       {ActionKey, HID_WIN_LEFT_KEY,  NULL, "<Snap"  },
       {ActionKey, HID_WIN_RIGHT_KEY, NULL, "Snap>"  },
       {ActionKey, HID_CTRL_WIN_RIGHT,NULL, "NxDesk" },
-    },
-
-    /* 9 -- NUMPAD */
-    { "NUMPAD",
-      {ActionTypeText, 0, "123", "123"  },
-      {ActionTypeText, 0, "456", "456"  },
-      {ActionTypeText, 0, "789", "789"  },
-      {ActionTypeText, 0, "0",   "0"    },
-      {ActionTypeText, 0, ".",   "Dot"  },
     },
 };
 
@@ -281,12 +284,12 @@ static const char HELP[HELP_SCREENS][HELP_LINES][HELP_LINE_LEN] = {
         "3:Browser 4:VSCode",
         "5:OBS    6:Macro",
     },
-    /* 3 - Pages 7-10 */
+    /* 3 - Pages 7-9 */
     {
-        "=PAGES 7-10=",
-        "7:Gaming 8:Photshp",
+        "=PAGES 7-9=",
+        "7:Gaming",
+        "8:Photoshop",
         "9:Win WM",
-        "10:Numpad",
     },
     /* 4 - Macro editor */
     {
@@ -322,8 +325,12 @@ typedef struct {
     uint32_t    last_tick;      /* furi_get_tick() when it was run  */
     uint8_t     profile_idx;    /* active profile 0..PROFILE_COUNT-1 */
     uint8_t     edit_macro_idx; /* macro slot being edited (0-4)    */
-    uint8_t     edit_char_idx;  /* index into EDITOR_CHARS          */
     char        edit_buf[MACRO_LEN]; /* working copy in editor      */
+    TextInput*  text_input;     /* Flipper's built-in text input    */
+    ViewDispatcher* view_dispatcher; /* For text input modal        */
+    ViewPort*   viewport;       /* Main viewport                    */
+    Gui*        gui;            /* GUI instance                     */
+    bool        text_input_active; /* Is text input currently shown */
 } AppState;
 
 /* ──────────────────────────────────────────────────────────────────
@@ -342,26 +349,52 @@ static void macros_load_sd(uint8_t pidx) {
             if(c == '\n' || ci >= MACRO_LEN - 1) {
                 line[ci] = '\0';
                 if(ci > 0) {
-                    strncpy(macro_buf[mx], line, MACRO_LEN - 1);
-                    macro_buf[mx][MACRO_LEN - 1] = '\0';
+                    /* Parse format: label|text (if no pipe, entire line is text) */
+                    char* pipe = strchr(line, '|');
+                    if(pipe != NULL) {
+                        /* Split label and text */
+                        *pipe = '\0';  /* terminate label */
+                        strncpy(macro_label_buf[mx], line, LABEL_LEN - 1);
+                        macro_label_buf[mx][LABEL_LEN - 1] = '\0';
+                        strncpy(macro_buf[mx], pipe + 1, MACRO_LEN - 1);
+                        macro_buf[mx][MACRO_LEN - 1] = '\0';
+                    } else {
+                        /* No pipe - entire line is text, keep default label */
+                        strncpy(macro_buf[mx], line, MACRO_LEN - 1);
+                        macro_buf[mx][MACRO_LEN - 1] = '\0';
+                    }
                     mx++; ci = 0;
                 }
             } else { line[ci++] = c; }
         }
         if(ci > 0 && mx < MACRO_COUNT) {
             line[ci] = '\0';
-            strncpy(macro_buf[mx], line, MACRO_LEN - 1);
+            char* pipe = strchr(line, '|');
+            if(pipe != NULL) {
+                *pipe = '\0';
+                strncpy(macro_label_buf[mx], line, LABEL_LEN - 1);
+                macro_label_buf[mx][LABEL_LEN - 1] = '\0';
+                strncpy(macro_buf[mx], pipe + 1, MACRO_LEN - 1);
+                macro_buf[mx][MACRO_LEN - 1] = '\0';
+            } else {
+                strncpy(macro_buf[mx], line, MACRO_LEN - 1);
+            }
         }
         storage_file_close(f);
     }
     storage_file_free(f);
     furi_record_close(RECORD_STORAGE);
-    /* Patch MACRO page text pointers */
+    /* Patch MACRO page text and label pointers */
     PAGES[MACRO_PAGE_IDX].up.text    = macro_buf[0];
     PAGES[MACRO_PAGE_IDX].down.text  = macro_buf[1];
     PAGES[MACRO_PAGE_IDX].left.text  = macro_buf[2];
     PAGES[MACRO_PAGE_IDX].right.text = macro_buf[3];
     PAGES[MACRO_PAGE_IDX].ok.text    = macro_buf[4];
+    PAGES[MACRO_PAGE_IDX].up.label    = macro_label_buf[0];
+    PAGES[MACRO_PAGE_IDX].down.label  = macro_label_buf[1];
+    PAGES[MACRO_PAGE_IDX].left.label  = macro_label_buf[2];
+    PAGES[MACRO_PAGE_IDX].right.label = macro_label_buf[3];
+    PAGES[MACRO_PAGE_IDX].ok.label    = macro_label_buf[4];
 }
 
 static void macro_save_sd(uint8_t pidx) {
@@ -371,6 +404,9 @@ static void macro_save_sd(uint8_t pidx) {
     File* f = storage_file_alloc(store);
     if(storage_file_open(f, s_macro_path, FSAM_WRITE, FSOM_CREATE_ALWAYS)) {
         for(uint8_t i = 0; i < MACRO_COUNT; i++) {
+            /* Save format: label|text */
+            storage_file_write(f, macro_label_buf[i], strlen(macro_label_buf[i]));
+            storage_file_write(f, "|", 1);
             storage_file_write(f, macro_buf[i], strlen(macro_buf[i]));
             storage_file_write(f, "\n", 1);
         }
@@ -480,15 +516,6 @@ static void execute_action(const Action* action) {
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Macro Editor — printable character set (space..~ plus newline)
-   ────────────────────────────────────────────────────────────────── */
-static const char EDITOR_CHARS[] =
-    " !\"#$%&'()*+,-./:;<=>?@"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`"
-    "abcdefghijklmnopqrstuvwxyz{|}~\n";
-#define EDITOR_CHARS_LEN ((uint8_t)(sizeof(EDITOR_CHARS) - 1))
-
-/* ──────────────────────────────────────────────────────────────────
    Draw Callback
    ────────────────────────────────────────────────────────────────── */
 static void draw_callback(Canvas* canvas, void* ctx) {
@@ -587,42 +614,8 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         canvas_draw_str_aligned(canvas, 126, 63, AlignRight, AlignBottom, "LongL/R:Pg");
 
     } else if(st->screen == AppScreenMacroEdit) {
-        /* ── MACRO EDITOR ── */
-        static const char* const SLOT[5] = {"Up","Down","Left","Rght","OK"};
-        canvas_set_font(canvas, FontPrimary);
-        char etitle[22];
-        snprintf(etitle, sizeof(etitle), "Edit P%u: %s",
-                 st->profile_idx + 1, SLOT[st->edit_macro_idx]);
-        canvas_draw_str(canvas, 2, 10, etitle);
-        canvas_draw_line(canvas, 0, 12, 127, 12);
-        canvas_set_font(canvas, FontSecondary);
-
-        /* Buffer — show last 20 chars + cursor marker */
-        uint8_t blen = (uint8_t)strlen(st->edit_buf);
-        char dbuf[23];
-        uint8_t si = (blen > 20) ? (uint8_t)(blen - 20) : 0;
-        uint8_t di = 0;
-        for(uint8_t bi = si; bi < blen && di < 20; bi++, di++)
-            dbuf[di] = (st->edit_buf[bi] == '\n') ? '\x7E' : st->edit_buf[bi];
-        dbuf[di++] = '_'; dbuf[di] = '\0';
-        canvas_draw_str(canvas, 2, 24, dbuf);
-        canvas_draw_line(canvas, 2, 26, (int)(di * 6), 26);
-
-        /* Char selector */
-        char cc = EDITOR_CHARS[st->edit_char_idx];
-        char sel[20];
-        if(cc == '\n')
-            snprintf(sel, sizeof(sel), "[NL] %u/%u",
-                     st->edit_char_idx + 1, EDITOR_CHARS_LEN);
-        else
-            snprintf(sel, sizeof(sel), "[ %c ] %u/%u",
-                     cc == ' ' ? '_' : cc,
-                     st->edit_char_idx + 1, EDITOR_CHARS_LEN);
-        canvas_draw_str_aligned(canvas, 64, 40, AlignCenter, AlignCenter, sel);
-
-        canvas_draw_line(canvas, 0, 52, 127, 52);
-        canvas_draw_str_aligned(canvas,   2, 63, AlignLeft,  AlignBottom, "U/D:Chr R:Add");
-        canvas_draw_str_aligned(canvas, 126, 63, AlignRight, AlignBottom, "L:Del OK:Save");
+        /* Macro editor uses Flipper's built-in text input (shown separately) */
+        /* This screen is not rendered as text_input widget takes over display */
 
     } else {
         /* ── HELP SCREEN ── */
@@ -657,6 +650,57 @@ static void draw_callback(Canvas* canvas, void* ctx) {
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Text Input Callbacks (for macro editor)
+   ────────────────────────────────────────────────────────────────── */
+static void text_input_callback(void* ctx) {
+    AppState* st = (AppState*)ctx;
+    
+    /* Parse format: label|text (if no pipe, entire input is text) */
+    char* pipe = strchr(st->edit_buf, '|');
+    if(pipe != NULL) {
+        /* Split label and text */
+        *pipe = '\0';  /* terminate label */
+        strncpy(macro_label_buf[st->edit_macro_idx], st->edit_buf, LABEL_LEN - 1);
+        macro_label_buf[st->edit_macro_idx][LABEL_LEN - 1] = '\0';
+        strncpy(macro_buf[st->edit_macro_idx], pipe + 1, MACRO_LEN - 1);
+        macro_buf[st->edit_macro_idx][MACRO_LEN - 1] = '\0';
+    } else {
+        /* No pipe - entire input is text, keep existing label */
+        strncpy(macro_buf[st->edit_macro_idx], st->edit_buf, MACRO_LEN - 1);
+        macro_buf[st->edit_macro_idx][MACRO_LEN - 1] = '\0';
+    }
+    
+    /* Update MACRO page pointers */
+    PAGES[MACRO_PAGE_IDX].up.text    = macro_buf[0];
+    PAGES[MACRO_PAGE_IDX].down.text  = macro_buf[1];
+    PAGES[MACRO_PAGE_IDX].left.text  = macro_buf[2];
+    PAGES[MACRO_PAGE_IDX].right.text = macro_buf[3];
+    PAGES[MACRO_PAGE_IDX].ok.text    = macro_buf[4];
+    PAGES[MACRO_PAGE_IDX].up.label    = macro_label_buf[0];
+    PAGES[MACRO_PAGE_IDX].down.label  = macro_label_buf[1];
+    PAGES[MACRO_PAGE_IDX].left.label  = macro_label_buf[2];
+    PAGES[MACRO_PAGE_IDX].right.label = macro_label_buf[3];
+    PAGES[MACRO_PAGE_IDX].ok.label    = macro_label_buf[4];
+    
+    /* Save to SD card */
+    macro_save_sd(st->profile_idx);
+    
+    /* Stop view dispatcher to return to main loop */
+    view_dispatcher_stop(st->view_dispatcher);
+    st->text_input_active = false;
+    st->screen = AppScreenPage;
+}
+
+static bool text_input_back_callback(void* ctx) {
+    AppState* st = (AppState*)ctx;
+    /* Cancel without saving */
+    view_dispatcher_stop(st->view_dispatcher);
+    st->text_input_active = false;
+    st->screen = AppScreenPage;
+    return true;  /* consume event */
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Input Callback
    ────────────────────────────────────────────────────────────────── */
 static void input_callback(InputEvent* event, void* ctx) {
@@ -679,8 +723,10 @@ int32_t flip_deck_main(void* p) {
     st->last_tick      = 0;
     st->profile_idx    = 0;
     st->edit_macro_idx = 0;
-    st->edit_char_idx  = 0;
     st->edit_buf[0]    = '\0';
+    st->text_input_active = false;
+    st->text_input = NULL;
+    st->view_dispatcher = NULL;
 
     /* Load last page + profile, then load macros for that profile */
     state_load(st);
@@ -692,13 +738,16 @@ int32_t flip_deck_main(void* p) {
     transport_check(notif);
     if(g_transport == TransportNone)
         g_transport = TransportWaitUsb;  /* show overlay until USB plugged */
+    
     FuriMessageQueue* queue = furi_message_queue_alloc(8, sizeof(InputEvent));
 
     ViewPort* vp = view_port_alloc();
+    st->viewport = vp;
     view_port_draw_callback_set(vp, draw_callback, st);
     view_port_input_callback_set(vp, input_callback, queue);
 
     Gui* gui = furi_record_open(RECORD_GUI);
+    st->gui = gui;
     gui_add_view_port(gui, vp, GuiLayerFullscreen);
 
     InputEvent event;
@@ -768,13 +817,56 @@ int32_t flip_deck_main(void* p) {
                     st->help_screen = 0;
                 } else if(st->page_idx == MACRO_PAGE_IDX &&
                           (event.key == InputKeyUp || event.key == InputKeyDown)) {
-                    /* Open editor for Up(0) or Down(1) macro slot */
+                    /* Open Flipper's text input for Up(0) or Down(1) macro slot */
                     uint8_t slot = (event.key == InputKeyUp) ? 0 : 1;
                     st->edit_macro_idx = slot;
-                    st->edit_char_idx  = 0;
-                    strncpy(st->edit_buf, macro_buf[slot], MACRO_LEN - 1);
-                    st->edit_buf[MACRO_LEN - 1] = '\0';
+                    
+                    /* Prepare edit buffer with format: label|text */
+                    snprintf(st->edit_buf, MACRO_LEN, "%s|%s", 
+                             macro_label_buf[slot], macro_buf[slot]);
+                    
+                    /* Create text input widget */
+                    st->text_input = text_input_alloc();
+                    text_input_set_result_callback(
+                        st->text_input,
+                        text_input_callback,
+                        st,
+                        st->edit_buf,
+                        MACRO_LEN - 1,
+                        false  /* don't clear - show existing content */
+                    );
+                    
+                    /* Set text input header */
+                    static const char* const SLOT[5] = {"Up","Down","Left","Right","OK"};
+                    char header[32];
+                    snprintf(header, sizeof(header), "Edit P%u: %s (label|text)", st->profile_idx + 1, SLOT[slot]);
+                    text_input_set_header_text(st->text_input, header);
+                    
+                    /* Create and configure view dispatcher */
+                    st->view_dispatcher = view_dispatcher_alloc();
+                    view_dispatcher_set_event_callback_context(st->view_dispatcher, st);
+                    view_dispatcher_set_navigation_event_callback(st->view_dispatcher, text_input_back_callback);
+                    view_dispatcher_add_view(st->view_dispatcher, 0, text_input_get_view(st->text_input));
+                    view_dispatcher_attach_to_gui(st->view_dispatcher, gui, ViewDispatcherTypeFullscreen);
+                    view_dispatcher_switch_to_view(st->view_dispatcher, 0);
+                    
+                    st->text_input_active = true;
                     st->screen = AppScreenMacroEdit;
+                    
+                    /* Remove our viewport and run view dispatcher (blocking until done) */
+                    gui_remove_view_port(gui, vp);
+                    view_dispatcher_run(st->view_dispatcher);
+                    
+                    /* View dispatcher stopped - cleanup and restore viewport */
+                    view_dispatcher_remove_view(st->view_dispatcher, 0);
+                    view_dispatcher_free(st->view_dispatcher);
+                    text_input_free(st->text_input);
+                    st->view_dispatcher = NULL;
+                    st->text_input = NULL;
+                    st->text_input_active = false;
+                    
+                    gui_add_view_port(gui, vp, GuiLayerFullscreen);
+                    notification_message(notif, &sequence_single_vibro);
                 } else {
                     needs_update = false;
                 }
@@ -814,55 +906,8 @@ int32_t flip_deck_main(void* p) {
             }
 
         } else if(st->screen == AppScreenMacroEdit) {
-            /* ── EDITOR INPUT ── */
-            uint8_t blen = (uint8_t)strlen(st->edit_buf);
-            if(event.type == InputTypeShort || event.type == InputTypeRepeat) {
-                switch(event.key) {
-                case InputKeyUp:
-                    st->edit_char_idx =
-                        (uint8_t)((st->edit_char_idx + 1) % EDITOR_CHARS_LEN);
-                    break;
-                case InputKeyDown:
-                    st->edit_char_idx = (st->edit_char_idx == 0)
-                        ? (uint8_t)(EDITOR_CHARS_LEN - 1)
-                        : (uint8_t)(st->edit_char_idx - 1);
-                    break;
-                case InputKeyRight:
-                    if(event.type == InputTypeShort && blen < MACRO_LEN - 1) {
-                        st->edit_buf[blen]     = EDITOR_CHARS[st->edit_char_idx];
-                        st->edit_buf[blen + 1] = '\0';
-                    }
-                    break;
-                case InputKeyLeft:
-                    if(event.type == InputTypeShort && blen > 0)
-                        st->edit_buf[blen - 1] = '\0';
-                    break;
-                case InputKeyOk:
-                    if(event.type == InputTypeShort) {
-                        strncpy(macro_buf[st->edit_macro_idx],
-                                st->edit_buf, MACRO_LEN - 1);
-                        macro_buf[st->edit_macro_idx][MACRO_LEN - 1] = '\0';
-                        PAGES[MACRO_PAGE_IDX].up.text    = macro_buf[0];
-                        PAGES[MACRO_PAGE_IDX].down.text  = macro_buf[1];
-                        PAGES[MACRO_PAGE_IDX].left.text  = macro_buf[2];
-                        PAGES[MACRO_PAGE_IDX].right.text = macro_buf[3];
-                        PAGES[MACRO_PAGE_IDX].ok.text    = macro_buf[4];
-                        macro_save_sd(st->profile_idx);
-                        notification_message(notif, &sequence_single_vibro);
-                        st->screen = AppScreenPage;
-                    }
-                    break;
-                case InputKeyBack:
-                    if(event.type == InputTypeShort)
-                        st->screen = AppScreenPage;
-                    break;
-                default:
-                    needs_update = false;
-                    break;
-                }
-            } else {
-                needs_update = false;
-            }
+            /* Text input widget handles its own input, skip event processing */
+            needs_update = false;
 
         } else {
             /* HELP */

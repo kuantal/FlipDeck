@@ -229,13 +229,14 @@ Back                   → Return to main menu
 
 ### ✏️ Macro Editor
 ```
-Up / Down    → Cycle through characters (hold for fast scroll)
-Right        → Append current character to text
-Left         → Backspace (delete last character)
-OK           → Save macro to SD and exit editor
-Back         → Cancel (discard changes)
+Format: label|text (e.g., "Hello|Hello, how are you?")
+- Type label (short name shown on screen)
+- Type pipe character |
+- Type text (what gets sent when action runs)
+- Press OK to save, Back to cancel
 ```
-> Characters include: space, all printable ASCII symbols, and `↵` (newline).
+> Uses Flipper's built-in keyboard with full character support.  
+> If you omit the pipe `|`, the entire input is saved as text (label unchanged).
 
 ### 👤 Profiles (in Main Menu)
 ```
@@ -302,22 +303,28 @@ Place a plain-text file at `/ext/apps_data/flip_deck/macros_N.txt` on your Flipp
 (where **N** = `0`, `1`, or `2` for each profile).  
 Each line corresponds to one macro action **in order: Up · Down · Left · Right · OK**.
 
+**Format:** `label|text` — label is the short name shown on screen, text is what gets typed.
+
 ```
-Hello,\nHow are you?\n
-Best regards,\n
-your@email.com
-+1 555 000 0000
-https://github.com/yourname
+Hello|Hello,\nHow are you?\n
+SignOff|Best regards,\n
+Email|your@email.com
+Phone|+1 555 000 0000
+GitHub|https://github.com/yourname
 ```
 
 | Rule | Detail |
 |---|---|
-| Max length | 63 characters per line |
+| Format | `label|text` (pipe separates label from text) |
+| Label length | Max 21 characters |
+| Text length | Max 63 characters |
 | Line ending | `\n` (LF) or `\r\n` (CRLF) both accepted |
+| Backward compat | If no pipe `|`, line is treated as text only (keeps default label) |
 | Fewer than 5 lines | Remaining macros keep built-in defaults |
-| Load timing | Read once on every app launch |
+| Load timing | Read once on every app launch + profile switch |
 | Directory | Created automatically on first launch |
 | Newline in text | Write `\n` literally — it becomes Enter when typed |
+| Edit on device | Long-press Up/Down in MACRO page to edit with Flipper keyboard |
 
 > The state file `/ext/apps_data/flip_deck/state.bin` stores the last selected page index (1 byte) and is read/written automatically.
 
