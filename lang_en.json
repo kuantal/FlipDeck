@@ -1,0 +1,113 @@
+{
+  "_comment": "FlipDeck — English UI strings. Keep labels ≤ 6 chars for Left/Right, ≤ 8 for OK, ≤ 21 for Up/Down/titles.",
+  "app": {
+    "title": "FlipDeck",
+    "menu": {
+      "btn_open": "OK:Open",
+      "btn_help": "LongOK:Help"
+    },
+    "page_view": {
+      "title_fmt": "[%d/%d] %s",
+      "footer_left": "Back:Menu",
+      "footer_right": "LongL/R:Pg"
+    },
+    "help": {
+      "title": "HELP",
+      "footer_fmt": "< %d/%d >  Back:Close"
+    }
+  },
+  "pages": {
+    "media": {
+      "name": "MEDIA",
+      "up":    "Vol+",
+      "down":  "Vol-",
+      "left":  "Prev",
+      "right": "Next",
+      "ok":    "Play"
+    },
+    "system": {
+      "name": "SYSTEM",
+      "up":    "Bright+",
+      "down":  "Desktop",
+      "left":  "Lock",
+      "right": "Snip",
+      "ok":    "Task Mgr"
+    },
+    "browser": {
+      "name": "BROWSER",
+      "up":    "Reload",
+      "down":  "Fullscr",
+      "left":  "Back",
+      "right": "Fwd",
+      "ok":    "New Tab"
+    },
+    "vscode": {
+      "name": "VS CODE",
+      "up":    "Line Up",
+      "down":  "Line Dn",
+      "left":  "Undo",
+      "right": "Redo",
+      "ok":    "Save"
+    },
+    "obs": {
+      "name": "OBS",
+      "up":    "Mute",
+      "down":  "Camera",
+      "left":  "<Scene",
+      "right": "Scene>",
+      "ok":    "Record"
+    },
+    "macro": {
+      "name": "MACRO",
+      "up":    "Hello",
+      "down":  "Sign Off",
+      "left":  "Email",
+      "right": "Phone",
+      "ok":    "GitHub"
+    }
+  },
+  "help_screens": [
+    {
+      "title": "=GENERAL=",
+      "line1": "USB-C: connect to PC",
+      "line2": "Up/Dn: select page",
+      "line3": "OK: open page"
+    },
+    {
+      "title": "=IN PAGE=",
+      "line1": "5 dirs = 5 actions",
+      "line2": "Long L/R: next page",
+      "line3": "Back: return to menu"
+    },
+    {
+      "title": "=PAGES=",
+      "line1": "0:Media  1:System",
+      "line2": "2:Browser 3:VSCode",
+      "line3": "4:OBS    5:Macro"
+    },
+    {
+      "title": "=MACRO & OBS=",
+      "line1": "Macro: types text",
+      "line2": "OBS: set in OBS app",
+      "line3": "Ctrl+Shift+R/S/M/V"
+    },
+    {
+      "title": "=TIPS=",
+      "line1": "Vibration on each cmd",
+      "line2": "Long OK: open help",
+      "line3": "Back in menu: exit"
+    }
+  ],
+  "macros": {
+    "greeting_text":  "Hello,\nHow are you?\n",
+    "greeting_label": "Hello",
+    "signoff_text":   "Best regards,\n",
+    "signoff_label":  "Sign Off",
+    "email_text":     "admin@example.com",
+    "email_label":    "Email",
+    "phone_text":     "+1 555 000 0000",
+    "phone_label":    "Phone",
+    "github_text":    "https://github.com/",
+    "github_label":   "GitHub"
+  }
+}

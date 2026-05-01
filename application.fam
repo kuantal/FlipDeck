@@ -1,0 +1,13 @@
+App(
+    appid="flip_deck",
+    name="FlipDeck",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="flip_deck_main",
+    requires=["gui", "notification"],
+    stack_size=2 * 1024,
+    fap_category="Tools",
+    fap_version=(1, 0),
+    fap_description="Loupedeck-style USB HID PC Controller",
+    fap_author="FlipDeck",
+    fap_icon="flipdeck_icon.png",
+)
