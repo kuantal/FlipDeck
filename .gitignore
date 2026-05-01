@@ -1,0 +1,13 @@
+# VS Code workspace settings
+.vscode/
+
+# Pre-built binaries
+dist/
+
+# ufbt build artifacts
+.ufbt/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
