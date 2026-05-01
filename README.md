@@ -12,19 +12,20 @@
 
 <br/>
 
-> Turn your Flipper Zero into a compact **5-button macro pad** — control media, system shortcuts, browser, VS Code, OBS and custom text macros over USB HID. No drivers required.
+> Turn your Flipper Zero into a compact **5-button macro pad** — control media, system shortcuts, browser, VS Code, OBS, gaming, Photoshop, Window management and custom text macros over USB HID. No drivers required.
 
 <br/>
 
 ```
-┌─────────────────────────┐
-│  [1/6] MEDIA            │
-│          Vol+           │
-│  Prev   Play/Pause  Next│
-│          Vol-           │
-│  Back:Menu  LongL/R:Pg  │
-└─────────────────────────┘
+┌─────────────────────────────┐
+│  [1/9] MEDIA   ┌──────┐     │  ← last-action flash pill
+│          Vol+  │ Vol+ │     │
+│  Prev   Play/Pause   Next   │
+│          Vol-               │
+│  Back:Menu      LongL/R:Pg  │
+└─────────────────────────────┘
   Flipper Zero 128×64 OLED
+  v2.0 — 9 pages · 45 shortcuts
 ```
 
 </div>
@@ -34,9 +35,11 @@
 ## 📋 Table of Contents
 
 - [✨ Features](#-features)
+- [🆕 What's New in v2](#-whats-new-in-v2)
 - [🗂️ Pages & Shortcuts](#️-pages--shortcuts)
 - [🕹️ Navigation](#️-navigation)
 - [🖥️ UI Layout](#️-ui-layout)
+- [💾 SD Card Macros](#-sd-card-macros)
 - [🌍 Language File](#-language-file)
 - [⚙️ Customisation](#️-customisation)
 - [🔨 Building & Flashing](#-building--flashing)
@@ -50,14 +53,31 @@
 
 | Feature | Details |
 |---|---|
-| 🎛️ **6 control pages** | Media · System · Browser · VS Code · OBS · Macro |
-| 🔑 **30 shortcuts** | 5 directional actions per page |
-| ⌨️ **Text macros** | Auto-type emails, greetings, URLs — char by char |
+| 🎛️ **9 control pages** | Media · System · Browser · VS Code · OBS · Macro · Gaming · Photoshop · Win WM |
+| 🔑 **45 shortcuts** | 5 directional actions per page |
+| ⌨️ **Rich text macros** | Full symbol support — `_!#$%^&*()=?;'"` and tab |
+| 💾 **SD card macros** | Edit `macros.txt` on SD — no recompile needed |
+| 🧠 **State persistence** | Last active page saved to SD, restored on next launch |
+| ⚡ **Last-action flash** | Executed label shown in a pill overlay for 1.5 s |
+| 🔁 **Hold-to-repeat** | Hold Up/Down to repeatedly fire that action |
 | 📳 **Haptic feedback** | Vibration on every command |
-| 📟 **Status display** | Page name + active action labels on 128×64 OLED |
 | 🔌 **Zero-driver** | Pure USB HID — works on Windows, macOS and Linux |
-| 📖 **Built-in help** | 5-screen help guide accessible from any state |
+| 📖 **Built-in help** | 6-screen help guide accessible from any state |
 | 🌐 **i18n-ready** | All strings centralised in `lang_en.json` |
+
+---
+
+## 🆕 What's New in v2
+
+| # | Feature | Details |
+|---|---|---|
+| 1 | **3 new pages** | Gaming · Photoshop · Windows WM — total 6 → 9 pages |
+| 2 | **SD card macros** | Edit `macros.txt` without recompiling |
+| 3 | **State persistence** | Active page survives power cycle |
+| 4 | **Last-action flash** | Top-right pill shows what just ran for 1.5 s |
+| 5 | **Hold-to-repeat** | Hold Up or Down to repeat continuously |
+| 6 | **20+ new typeable chars** | `_  !  #  $  %  ^  &  *  (  )  =  ?  ;  '  "  \t` |
+| 7 | **Help expanded** | 5 → 6 screens with new pages documented |
 
 ---
 
@@ -111,13 +131,42 @@
 > **Note:** OBS shortcuts must be configured in **OBS → Settings → Hotkeys** to match.
 
 ### 📝 Page 6 — MACRO
-| Direction | Text Typed |
-|-----------|-----------|
-| ⬆️ Up | `Hello,\nHow are you?\n` |
-| ⬇️ Down | `Best regards,\n` |
-| ⬅️ Left | `admin@example.com` |
-| ➡️ Right | `+1 555 000 0000` |
-| 🔘 OK | `https://github.com/` |
+| Direction | Default Text | Editable? |
+|-----------|-------------|----------|
+| ⬆️ Up | `Hello,\nHow are you?\n` | ✅ via `macros.txt` |
+| ⬇️ Down | `Best regards,\n` | ✅ via `macros.txt` |
+| ⬅️ Left | `admin@example.com` | ✅ via `macros.txt` |
+| ➡️ Right | `+1 555 000 0000` | ✅ via `macros.txt` |
+| 🔘 OK | `https://github.com/` | ✅ via `macros.txt` |
+
+> See [💾 SD Card Macros](#-sd-card-macros) to edit without recompiling.
+
+### 🎮 Page 7 — GAMING
+| Direction | Action | Shortcut |
+|-----------|--------|----------|
+| ⬆️ Up | Push-to-Talk | `T` |
+| ⬇️ Down | Mute Toggle | `Ctrl + Shift + M` |
+| ⬅️ Left | Screenshot | `F12` |
+| ➡️ Right | Overlay | `Shift + Tab` |
+| 🔘 OK | Fullscreen | `Alt + Enter` |
+
+### 🎨 Page 8 — PHOTOSHOP
+| Direction | Action | Shortcut |
+|-----------|--------|----------|
+| ⬆️ Up | Zoom In | `Ctrl + =` |
+| ⬇️ Down | Zoom Out | `Ctrl + -` |
+| ⬅️ Left | Undo | `Ctrl + Z` |
+| ➡️ Right | History Step Back | `Ctrl + Alt + Z` |
+| 🔘 OK | Save As | `Ctrl + Shift + S` |
+
+### 🪟 Page 9 — WIN WM
+| Direction | Action | Shortcut |
+|-----------|--------|----------|
+| ⬆️ Up | Maximize | `Win + ↑` |
+| ⬇️ Down | Minimize | `Win + ↓` |
+| ⬅️ Left | Snap Left | `Win + ←` |
+| ➡️ Right | Snap Right | `Win + →` |
+| 🔘 OK | Next Virtual Desktop | `Ctrl + Win + →` |
 
 ---
 
@@ -141,7 +190,7 @@ Back                   → Return to main menu
 
 ### ❓ Help Screen
 ```
-Left / Right   → Previous / next help screen (5 total)
+Left / Right   → Previous / next help screen (6 total)
 OK or Back     → Close help
 ```
 
@@ -164,15 +213,43 @@ OK or Back     → Close help
 
 ```
 ┌────────────────────────────────┐
-│  [2/6] SYSTEM                  │  Page title
-│────────────────────────────────│
+│  [2/9] SYSTEM    ┌──────────┐  │  ← last-action pill (1.5 s)
+│────────────────── └──────────┘ │
 │           Bright+              │  ↑ action
-│  Lock    Task Mgr   Snip       │  ← | OK | →
+│  Lock    Task Mgr   Snip       │  ← | OK box | →
 │           Desktop              │  ↓ action
 │────────────────────────────────│
 │  Back:Menu          LongL/R:Pg │  Footer (split, no overflow)
 └────────────────────────────────┘
 ```
+
+> **Hold Up or Down** to continuously repeat that action (e.g. hold Up on MEDIA for continuous Vol+).
+
+---
+
+## 💾 SD Card Macros
+
+Place a plain-text file at `/ext/apps_data/flip_deck/macros.txt` on your Flipper SD card.  
+Each line corresponds to one macro action **in order: Up · Down · Left · Right · OK**.
+
+```
+Hello,\nHow are you?\n
+Best regards,\n
+your@email.com
++1 555 000 0000
+https://github.com/yourname
+```
+
+| Rule | Detail |
+|---|---|
+| Max length | 63 characters per line |
+| Line ending | `\n` (LF) or `\r\n` (CRLF) both accepted |
+| Fewer than 5 lines | Remaining macros keep built-in defaults |
+| Load timing | Read once on every app launch |
+| Directory | Created automatically on first launch |
+| Newline in text | Write `\n` literally — it becomes Enter when typed |
+
+> The state file `/ext/apps_data/flip_deck/state.bin` stores the last selected page index (1 byte) and is read/written automatically.
 
 ---
 
@@ -201,17 +278,21 @@ To add a new language, duplicate `lang_en.json` as `lang_xx.json` and update the
 ## ⚙️ Customisation
 
 ### 📝 Changing Macro Text
-Open `pccontrol.c` and edit the `MACRO` page strings:
+
+**Option A — SD card (recommended, no recompile):**  
+Edit `/ext/apps_data/flip_deck/macros.txt` — see [💾 SD Card Macros](#-sd-card-macros).
+
+**Option B — hardcoded defaults:**  
+Edit `macro_buf[]` in `pccontrol.c`:
 
 ```c
-/* 5 -- MACRO */
-{ "MACRO",
-  {ActionTypeText, 0, "Hello,\nHow are you?\n", "Hello"   },
-  {ActionTypeText, 0, "Best regards,\n",         "Sign Off"},
-  {ActionTypeText, 0, "your@email.com",           "Email"   },
-  {ActionTypeText, 0, "+1 555 000 0000",           "Phone"   },
-  {ActionTypeText, 0, "https://github.com/",       "GitHub"  },
-},
+static char macro_buf[MACRO_COUNT][MACRO_LEN] = {
+    "Hello,\nHow are you?\n",
+    "Best regards,\n",
+    "your@email.com",
+    "+1 555 000 0000",
+    "https://github.com/yourname",
+};
 ```
 
 ### 🎥 Changing OBS Hotkeys
@@ -220,8 +301,8 @@ The OBS page uses `Ctrl+Shift+R/S/M/V` by default. You can remap them in:
 - **or** change the `HID_CTRL_SHIFT_*` defines in `pccontrol.c`
 
 ### ➕ Adding a New Page
-1. Add a new `Page` entry to the `PAGES[]` array
-2. `PAGE_COUNT` is computed automatically via `sizeof`
+1. Add a new `Page` entry to the `PAGES[]` array in `pccontrol.c`
+2. `PAGE_COUNT` is computed automatically via `sizeof` — no other changes needed
 
 ---
 
@@ -255,12 +336,17 @@ SD Card → apps → Tools → flip_deck.fap
 
 ```
 FlipDeck/
-├── pccontrol.c          # Main application source
+├── pccontrol.c          # Main application source (v2)
 ├── application.fam      # App manifest (name, id, icon, category)
 ├── flipdeck_icon.png    # 10×10 px 1-bit app icon
 ├── lang_en.json         # English UI strings reference
-├── dist/                # Pre-built .fap binaries
+├── .gitignore
 └── README.md
+
+SD Card (auto-created on first launch):
+/ext/apps_data/flip_deck/
+├── macros.txt           # Optional: 5 macro texts, one per line
+└── state.bin            # Last active page index (1 byte)
 ```
 
 ---
@@ -275,10 +361,12 @@ Contributions are welcome!
 4. Push and open a Pull Request
 
 **Ideas for contribution:**
-- 🎮 Gaming page (PTT, mute, overlay)
-- 🎨 Photoshop / Figma shortcuts page
-- 🌐 Multi-language support
-- 🔢 Numpad page
+- 🖼️ Figma / Canva shortcuts page
+- 🔢 Numpad page (`ActionTypeText` with digits)
+- 🌐 Multi-language support (new `lang_xx.json`)
+- 📱 In-app macro editor (Flipper `text_input` widget)
+- 🔵 BLE HID mode fallback when USB is disconnected
+- 🗂️ Profile system — multiple page sets selectable from menu
 
 ---
 
