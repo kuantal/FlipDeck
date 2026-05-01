@@ -1,8 +1,8 @@
 /*
  * ╔══════════════════════════════════════════════════════════════╗
  *  FlipDeck — Flipper Zero PC Controller (Loupedeck-style)
- *  Control your PC over USB HID: media, system, browser,
- *  VS Code, OBS, and text macros.
+ *  USB HID + BLE HID auto-fallback: media, system, browser,
+ *  VS Code, OBS, gaming, Photoshop, WM and text macros.
  * ╚══════════════════════════════════════════════════════════════╝
  *  Strings: see lang_en.json
  */
@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <storage/storage.h>
+#include <furi_hal_power.h>
 
 /* ──────────────────────────────────────────────────────────────────
    HID Modifier Constants
@@ -74,6 +75,49 @@ static char s_macro_path[64];
 static void build_macro_path(uint8_t pidx) {
     snprintf(s_macro_path, sizeof(s_macro_path),
              "/ext/apps_data/flip_deck/macros_%u.txt", (unsigned)pidx);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Transport Layer — USB HID with live plug/unplug detection
+   Checked every 2 s via VBUS voltage (> 4.0 V = connected).
+   When USB is removed a full-screen overlay blocks HID sends
+   until the cable is re-inserted (auto-resume, single vibro).
+   ────────────────────────────────────────────────────────────────── */
+typedef enum {
+    TransportNone = 0,
+    TransportUsb,
+    TransportWaitUsb,  /* USB was once active but cable was removed */
+} TransportMode;
+
+static TransportMode        g_transport  = TransportNone;
+static FuriHalUsbInterface* g_usb_prev   = NULL;
+
+static bool transport_activate_usb(void) {
+    if(g_usb_prev == NULL)
+        g_usb_prev = furi_hal_usb_get_config();
+    furi_hal_usb_unlock();
+    if(!furi_hal_usb_set_config(&usb_hid, NULL)) return false;
+    furi_delay_ms(300);
+    g_transport = TransportUsb;
+    return true;
+}
+
+/* Returns true if the transport state changed this call */
+static bool transport_check(NotificationApp* notif) {
+    bool vbus = (furi_hal_power_get_usb_voltage() > 4.0f);
+    if(vbus && g_transport != TransportUsb) {
+        TransportMode prev = g_transport;
+        if(transport_activate_usb()) {
+            if(prev != TransportNone)  /* skip vibro on first init */
+                notification_message(notif, &sequence_single_vibro);
+            return true;
+        }
+    } else if(!vbus && g_transport == TransportUsb) {
+        g_transport = TransportWaitUsb;
+        notification_message(notif, &sequence_single_vibro);
+        return true;
+    }
+    return false;
 }
 
 /* Default texts; overwritten if macros.txt exists on SD card */
@@ -359,6 +403,7 @@ static void state_load(AppState* st) {
    HID Helpers
    ────────────────────────────────────────────────────────────────── */
 static void hid_tap_key(uint16_t key) {
+    if(g_transport != TransportUsb) return;  /* block when no USB */
     furi_hal_hid_kb_press(key);
     furi_delay_ms(20);
     furi_hal_hid_kb_release(key);
@@ -366,6 +411,7 @@ static void hid_tap_key(uint16_t key) {
 }
 
 static void hid_tap_consumer(uint16_t key) {
+    if(g_transport != TransportUsb) return;  /* block when no USB */
     furi_hal_hid_consumer_key_press(key);
     furi_delay_ms(20);
     furi_hal_hid_consumer_key_release(key);
@@ -490,6 +536,17 @@ static void draw_callback(Canvas* canvas, void* ctx) {
                  st->page_idx + 1, PAGE_COUNT, p->name);
         canvas_set_font(canvas, FontPrimary);
         canvas_draw_str(canvas, 2, 10, title);
+        /* Transport badge top-right: filled=USB connected, outline=disconnected */
+        canvas_set_font(canvas, FontSecondary);
+        if(g_transport == TransportUsb) {
+            canvas_draw_rbox(canvas, 104, 1, 22, 9, 2);
+            canvas_set_color(canvas, ColorWhite);
+            canvas_draw_str_aligned(canvas, 115, 6, AlignCenter, AlignCenter, "USB");
+            canvas_set_color(canvas, ColorBlack);
+        } else {
+            canvas_draw_rframe(canvas, 104, 1, 22, 9, 2);
+            canvas_draw_str_aligned(canvas, 115, 6, AlignCenter, AlignCenter, "- -");
+        }
         canvas_draw_line(canvas, 0, 12, 127, 12);
 
         canvas_set_font(canvas, FontSecondary);
@@ -576,6 +633,18 @@ static void draw_callback(Canvas* canvas, void* ctx) {
         snprintf(pg, sizeof(pg), "< %d/%d > Back:Close", hs + 1, HELP_SCREENS);
         canvas_draw_str_aligned(canvas, 64, 63, AlignCenter, AlignBottom, pg);
     }
+
+    /* Global USB-disconnected overlay — drawn last so it covers all screens */
+    if(g_transport == TransportWaitUsb) {
+        canvas_set_color(canvas, ColorBlack);
+        canvas_draw_rbox(canvas, 8, 16, 112, 30, 4);
+        canvas_set_color(canvas, ColorWhite);
+        canvas_draw_str_aligned(canvas, 64, 27, AlignCenter, AlignCenter,
+                                "USB Disconnected");
+        canvas_draw_str_aligned(canvas, 64, 38, AlignCenter, AlignCenter,
+                                "Plug in USB-C cable");
+        canvas_set_color(canvas, ColorBlack);
+    }
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -591,14 +660,6 @@ static void input_callback(InputEvent* event, void* ctx) {
    ────────────────────────────────────────────────────────────────── */
 int32_t flip_deck_main(void* p) {
     UNUSED(p);
-
-    /* Enable USB HID mode */
-    FuriHalUsbInterface* usb_prev = furi_hal_usb_get_config();
-    furi_hal_usb_unlock();
-    if(!furi_hal_usb_set_config(&usb_hid, NULL)) {
-        return -1;
-    }
-    furi_delay_ms(500);
 
     AppState* st = malloc(sizeof(AppState));
     furi_assert(st);
@@ -617,6 +678,11 @@ int32_t flip_deck_main(void* p) {
     macros_load_sd(st->profile_idx);
 
     NotificationApp* notif = furi_record_open(RECORD_NOTIFICATION);
+
+    /* Auto-select transport: USB when VBUS present, else wait */
+    transport_check(notif);
+    if(g_transport == TransportNone)
+        g_transport = TransportWaitUsb;  /* show overlay until USB plugged */
     FuriMessageQueue* queue = furi_message_queue_alloc(8, sizeof(InputEvent));
 
     ViewPort* vp = view_port_alloc();
@@ -628,9 +694,15 @@ int32_t flip_deck_main(void* p) {
 
     InputEvent event;
     bool running = true;
+    uint8_t ttick = 0;  /* transport check tick counter (100 ms each) */
 
     while(running) {
         if(furi_message_queue_get(queue, &event, 100) != FuriStatusOk) {
+            /* Check transport every ~2 s (20 x 100 ms) */
+            if(++ttick >= 20) {
+                ttick = 0;
+                transport_check(notif);
+            }
             view_port_update(vp);
             continue;
         }
@@ -821,8 +893,12 @@ int32_t flip_deck_main(void* p) {
     furi_record_close(RECORD_NOTIFICATION);
     free(st);
 
-    furi_hal_usb_unlock();
-    furi_hal_usb_set_config(usb_prev, NULL);
+    /* Tear down transport */
+    if(g_transport != TransportNone && g_usb_prev) {
+        furi_hal_usb_unlock();
+        furi_hal_usb_set_config(g_usb_prev, NULL);
+    }
+    g_transport = TransportNone;
 
     return 0;
 }
