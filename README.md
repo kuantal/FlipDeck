@@ -12,20 +12,20 @@
 
 <br/>
 
-> Turn your Flipper Zero into a compact **5-button macro pad** — control media, system shortcuts, browser, VS Code, OBS, gaming, Photoshop, Window management, **numeric entry** and custom text macros over USB HID. **3 switchable profiles. On-device macro editor. Live USB plug/unplug detection. No drivers required.**
+> Turn your Flipper Zero into a compact **5-button macro pad** — control media, system shortcuts, browser, VS Code, OBS, gaming, Photoshop, Window management and custom text macros over USB HID. **3 switchable profiles. Flipper keyboard integration. Editable macro labels. Live USB plug/unplug detection. No drivers required.**
 
 <br/>
 
 ```
 ┌─────────────────────────────┐
-│  [1/10] MEDIA  ┌──────┐     │  ← last-action flash pill
+│  [1/9] MEDIA   ┌──────┐     │  ← last-action flash pill
 │          Vol+  │ Vol+ │     │
 │  Prev   Play/Pause   Next   │
 │          Vol-               │
 │  Back:Menu      LongL/R:Pg  │
 └─────────────────────────────┘
   Flipper Zero 128×64 OLED
-  v2.2 — 10 pages · 50 shortcuts
+  v2.3 — 9 pages · 45 shortcuts
 ```
 
 </div>
@@ -56,7 +56,7 @@
 | 🎛️ **9 control pages** | Media · System · Browser · VS Code · OBS · Macro · Gaming · Photoshop · Win WM |
 | 🔑 **45 shortcuts** | 5 directional actions per page |
 | 📲 **3 profiles** | Switch via Long-Up/Down in menu — each profile has its own macro set |
-| ✏️ **On-device editor** | Edit Up/Down macro slots directly on Flipper (no PC, no SD) |
+| ✏️ **On-device editor** | Edit macro labels + text with Flipper's QWERTY keyboard (no PC needed) |
 | ⌨️ **Rich text macros** | Full symbol support — `_!#$%^&*()=?;'"` and tab |
 | 💾 **SD card macros** | Edit `macros.txt` on SD — no recompile needed |
 | 🧠 **State persistence** | Last active page saved to SD, restored on next launch |
@@ -104,6 +104,18 @@
 | 3 | **Auto-resume** | Reconnecting USB triggers instant HID re-init + single vibration |
 | 4 | **Cold-start handling** | App opens without USB connected — shows overlay until cable is inserted |
 | 5 | **USB badge in page view** | Filled **USB** badge = connected; outline **- -** badge = disconnected |
+
+---
+
+## 🆕 What's New in v2.3
+
+| # | Feature | Details |
+|---|---|---|
+| 1 | **Flipper keyboard integration** | Uses built-in TextInput widget with QWERTY layout — no more character cycling |
+| 2 | **Editable macro labels** | `label\|text` format in SD files — customize both display name and typed text |
+| 3 | **Modular architecture** | Refactored from 959-line monolithic file to 7 clean modules (types, HID, transport, storage, pages, UI, main) |
+| 4 | **Backward compatibility** | Old macro format (text only) still works — label defaults to built-in value |
+| 5 | **Improved maintainability** | Separate concerns: each module handles one responsibility |
 
 ---
 
@@ -194,17 +206,6 @@
 | ➡️ Right | Snap Right | `Win + →` |
 | 🔘 OK | Next Virtual Desktop | `Ctrl + Win + →` |
 
-### 🔢 Page 10 — NUMPAD
-| Direction | Types | Description |
-|-----------|--------|----------|
-| ⬆️ Up | `123` | Digits 1-2-3 |
-| ⬇️ Down | `456` | Digits 4-5-6 |
-| ⬅️ Left | `789` | Digits 7-8-9 |
-| ➡️ Right | `0` | Zero digit |
-| 🔘 OK | `.` | Decimal point |
-
-> **Use Case:** Quick number entry without typing each digit manually. Combines ActionTypeText for fast multi-digit sequences.
-
 ---
 
 ## 🕹️ Navigation
@@ -227,16 +228,17 @@ Long Down (MACRO page) → Open editor for Down macro slot
 Back                   → Return to main menu
 ```
 
-### ✏️ Macro Editor
+### ✏️ Macro Editor (Flipper Keyboard)
 ```
 Format: label|text (e.g., "Hello|Hello, how are you?")
-- Type label (short name shown on screen)
+- Type label (short name shown on screen, max 21 chars)
 - Type pipe character |
-- Type text (what gets sent when action runs)
+- Type text (what gets sent when action runs, max 63 chars)
 - Press OK to save, Back to cancel
 ```
-> Uses Flipper's built-in keyboard with full character support.  
-> If you omit the pipe `|`, the entire input is saved as text (label unchanged).
+> Uses Flipper's built-in TextInput widget with QWERTY layout.  
+> If you omit the pipe `|`, the entire input is saved as text (label unchanged).  
+> Both label and text are saved to SD card as `label|text` format.
 
 ### 👤 Profiles (in Main Menu)
 ```
@@ -282,17 +284,19 @@ OK or Back     → Close help
 
 ```
 ┌────────────────────────────────┐
-│  Edit P1: Up                   │  Profile + slot title
+│  Edit: label|text              │  Text input header
 │────────────────────────────────│
-│  Hello, How are ?_             │  Buffer (last 20 chars + cursor)
-│          ─                     │  cursor underline
-│       [ H ] 34/96              │  current char + position
+│  Hello|Hello, how are you?_    │  Input buffer with cursor
+│                                │
+│  [Q][W][E][R][T][Y][U][I][O]   │  Flipper QWERTY keyboard
+│  [A][S][D][F][G][H][J][K][L]   │  (built-in TextInput widget)
+│   [Z][X][C][V][B][N][M]        │
 │────────────────────────────────│
-│  U/D:Chr R:Add     L:Del OK:Sv │
+│  Navigate with D-pad, OK:save  │
 └────────────────────────────────┘
 ```
 
-> Only **Up** and **Down** macro slots can be edited on-device.  
+> **Up** and **Down** macro slots can be edited on-device using Flipper's QWERTY keyboard.  
 > Use `macros_N.txt` on the SD card to edit all 5 slots for any profile.
 
 ---
@@ -348,7 +352,7 @@ All UI strings live in **`lang_en.json`** — no recompilation needed for text t
 }
 ```
 
-To add a new language, duplicate `lang_en.json` as `lang_xx.json` and update the string arrays in `pccontrol.c`.
+To add a new language, duplicate `lang_en.json` as `lang_xx.json` and update the string arrays in `flip_deck_pages.c`.
 
 ---
 
@@ -365,10 +369,10 @@ Use Up/Down to cycle characters, Right to append, Left to backspace, OK to save.
 Edit `/ext/apps_data/flip_deck/macros_N.txt` (N = 0, 1, 2 for each profile) — see [💾 SD Card Macros](#-sd-card-macros).
 
 **Option C — hardcoded defaults:**  
-Edit `macro_buf[]` in `pccontrol.c`:
+Edit `macro_buf[]` in `flip_deck_storage.c`:
 
 ```c
-static char macro_buf[MACRO_COUNT][MACRO_LEN] = {
+char macro_buf[MACRO_COUNT][MACRO_LEN] = {
     "Hello,\nHow are you?\n",
     "Best regards,\n",
     "your@email.com",
@@ -380,11 +384,12 @@ static char macro_buf[MACRO_COUNT][MACRO_LEN] = {
 ### 🎥 Changing OBS Hotkeys
 The OBS page uses `Ctrl+Shift+R/S/M/V` by default. You can remap them in:
 - **OBS** → Settings → Hotkeys
-- **or** change the `HID_CTRL_SHIFT_*` defines in `pccontrol.c`
+- **or** change the `HID_CTRL_SHIFT_*` defines in `flip_deck_types.h`
 
 ### ➕ Adding a New Page
-1. Add a new `Page` entry to the `PAGES[]` array in `pccontrol.c`
-2. `PAGE_COUNT` is computed automatically via `sizeof` — no other changes needed
+1. Add a new `Page` entry to the `PAGES[]` array in `flip_deck_pages.c`
+2. Update `pages_get_count()` return value or use `sizeof(PAGES)`
+3. Optionally add help text to `HELP[]` array
 
 ---
 
@@ -418,18 +423,28 @@ SD Card → apps → Tools → flip_deck.fap
 
 ```
 FlipDeck/
-├── pccontrol.c          # Main application source (v2.1)
-├── application.fam      # App manifest (name, id, icon, category)
-├── flipdeck_icon.png    # 10×10 px 1-bit app icon
-├── lang_en.json         # English UI strings reference
-├── .gitignore
+├── flip_deck_main.c      # Application entry point & main loop
+├── flip_deck_ui.c/h      # UI layer (draw callbacks, text editor)
+├── flip_deck_hid.c/h     # HID wrapper functions (key/consumer/text)
+├── flip_deck_transport.c/h  # USB detection & connection management
+├── flip_deck_storage.c/h    # SD card I/O (macros, state persistence)
+├── flip_deck_pages.c/h      # Page definitions & help screens
+├── flip_deck_types.h        # Global types, constants, structs
+├── application.fam          # App manifest (name, sources, icon)
+├── flipdeck_icon.png        # 10×10 px 1-bit app icon
+├── lang_en.json             # English UI strings reference
 └── README.md
+
+**Architecture:**
+- **Modular design:** Each module has single responsibility
+- **Header/implementation separation:** Clean API boundaries
+- **Total:** ~1,100 lines across 7 modules (vs. 959-line monolith)
 
 SD Card (auto-created on first launch):
 /ext/apps_data/flip_deck/
-├── macros_0.txt         # Profile 1 macro texts (5 lines)
-├── macros_1.txt         # Profile 2 macro texts
-├── macros_2.txt         # Profile 3 macro texts
+├── macros_0.txt         # Profile 1: 5 lines of label|text
+├── macros_1.txt         # Profile 2: 5 lines of label|text
+├── macros_2.txt         # Profile 3: 5 lines of label|text
 └── state.bin            # Last page index + active profile (2 bytes)
 ```
 
@@ -445,11 +460,11 @@ Contributions are welcome!
 4. Push and open a Pull Request
 
 **Ideas for contribution:**
-- 🖼️ Figma / Canva shortcuts page
-- 🔢 Numpad page (`ActionTypeText` with digits)
+- 🖼️ Figma / Canva / Premiere Pro shortcuts page
 - 🌐 Multi-language support (new `lang_xx.json`)
 - ✏️ Full 5-slot on-device editor (Left/Right/OK slots)
-- ️ More profile slots (via SD config)
+- 📊 More profile slots (via SD config)
+- 🎨 Customizable page order
 
 ---
 
