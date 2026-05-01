@@ -12,7 +12,7 @@
 
 <br/>
 
-> Turn your Flipper Zero into a compact **5-button macro pad** — control media, system shortcuts, browser, VS Code, OBS, gaming, Photoshop, Window management and custom text macros over USB HID. No drivers required.
+> Turn your Flipper Zero into a compact **5-button macro pad** — control media, system shortcuts, browser, VS Code, OBS, gaming, Photoshop, Window management and custom text macros over USB HID. **3 switchable profiles. On-device macro editor. No drivers required.**
 
 <br/>
 
@@ -55,6 +55,8 @@
 |---|---|
 | 🎛️ **9 control pages** | Media · System · Browser · VS Code · OBS · Macro · Gaming · Photoshop · Win WM |
 | 🔑 **45 shortcuts** | 5 directional actions per page |
+| 📲 **3 profiles** | Switch via Long-Up/Down in menu — each profile has its own macro set |
+| ✏️ **On-device editor** | Edit Up/Down macro slots directly on Flipper (no PC, no SD) |
 | ⌨️ **Rich text macros** | Full symbol support — `_!#$%^&*()=?;'"` and tab |
 | 💾 **SD card macros** | Edit `macros.txt` on SD — no recompile needed |
 | 🧠 **State persistence** | Last active page saved to SD, restored on next launch |
@@ -78,6 +80,17 @@
 | 5 | **Hold-to-repeat** | Hold Up or Down to repeat continuously |
 | 6 | **20+ new typeable chars** | `_  !  #  $  %  ^  &  *  (  )  =  ?  ;  '  "  \t` |
 | 7 | **Help expanded** | 5 → 6 screens with new pages documented |
+
+---
+
+## 🆕 What's New in v2.1
+
+| # | Feature | Details |
+|---|---|---|
+| 1 | **3 Profile slots** | Switch profiles via Long-Up / Long-Down in main menu |
+| 2 | **On-device macro editor** | Edit Up/Down macros directly on Flipper — no PC needed |
+| 3 | **Per-profile SD files** | Each profile saves to its own `macros_0/1/2.txt` |
+| 4 | **Profile badge** | Active profile (P1/P2/P3) shown in menu title bar |
 
 ---
 
@@ -185,8 +198,27 @@ Back           → Exit app
 Up/Down/Left/Right/OK  → Execute action (+ vibration)
 Long Left / Long Right → Jump to previous / next page
 Long OK                → Open help
+Long Up  (MACRO page)  → Open editor for Up macro slot
+Long Down (MACRO page) → Open editor for Down macro slot
 Back                   → Return to main menu
 ```
+
+### ✏️ Macro Editor
+```
+Up / Down    → Cycle through characters (hold for fast scroll)
+Right        → Append current character to text
+Left         → Backspace (delete last character)
+OK           → Save macro to SD and exit editor
+Back         → Cancel (discard changes)
+```
+> Characters include: space, all printable ASCII symbols, and `↵` (newline).
+
+### 👤 Profiles (in Main Menu)
+```
+Long Up    → Switch to previous profile (P3 → P2 → P1 → P3)
+Long Down  → Switch to next profile    (P1 → P2 → P3 → P1)
+```
+> Each profile loads its own `macros_N.txt` from SD. Active profile shown as **P1/P2/P3** badge in the menu title bar.
 
 ### ❓ Help Screen
 ```
@@ -200,13 +232,13 @@ OK or Back     → Close help
 
 ```
 ┌────────────────────────────────┐  ← 128 px
-│         FlipDeck               │  Title bar (FontPrimary)
+│         FlipDeck          [P1] │  Title + profile badge
 │────────────────────────────────│
 │  1. MEDIA      ◀ selected      │
 │  2. SYSTEM                     │  3-item scrolling list
 │  3. BROWSER                    │
 │────────────────────────────────│
-│  OK:Open          LongOK:Help  │  Footer hints
+│ OK:Open  LongOK:Help  LU/D:Prof│  Footer hints
 └────────────────────────────────┘
            64 px tall
 ```
@@ -223,13 +255,27 @@ OK or Back     → Close help
 └────────────────────────────────┘
 ```
 
-> **Hold Up or Down** to continuously repeat that action (e.g. hold Up on MEDIA for continuous Vol+).
+```
+┌────────────────────────────────┐
+│  Edit P1: Up                   │  Profile + slot title
+│────────────────────────────────│
+│  Hello, How are ?_             │  Buffer (last 20 chars + cursor)
+│          ─                     │  cursor underline
+│       [ H ] 34/96              │  current char + position
+│────────────────────────────────│
+│  U/D:Chr R:Add     L:Del OK:Sv │
+└────────────────────────────────┘
+```
+
+> Only **Up** and **Down** macro slots can be edited on-device.  
+> Use `macros_N.txt` on the SD card to edit all 5 slots for any profile.
 
 ---
 
 ## 💾 SD Card Macros
 
-Place a plain-text file at `/ext/apps_data/flip_deck/macros.txt` on your Flipper SD card.  
+Place a plain-text file at `/ext/apps_data/flip_deck/macros_N.txt` on your Flipper SD card  
+(where **N** = `0`, `1`, or `2` for each profile).  
 Each line corresponds to one macro action **in order: Up · Down · Left · Right · OK**.
 
 ```
@@ -279,10 +325,15 @@ To add a new language, duplicate `lang_en.json` as `lang_xx.json` and update the
 
 ### 📝 Changing Macro Text
 
-**Option A — SD card (recommended, no recompile):**  
-Edit `/ext/apps_data/flip_deck/macros.txt` — see [💾 SD Card Macros](#-sd-card-macros).
+**Option A — On-device editor (recommended for Up/Down slots):**
 
-**Option B — hardcoded defaults:**  
+In the MACRO page, hold **Up** or **Down** to open the built-in character editor.  
+Use Up/Down to cycle characters, Right to append, Left to backspace, OK to save.
+
+**Option B — SD card file (all 5 slots, any profile):**  
+Edit `/ext/apps_data/flip_deck/macros_N.txt` (N = 0, 1, 2 for each profile) — see [💾 SD Card Macros](#-sd-card-macros).
+
+**Option C — hardcoded defaults:**  
 Edit `macro_buf[]` in `pccontrol.c`:
 
 ```c
@@ -336,7 +387,7 @@ SD Card → apps → Tools → flip_deck.fap
 
 ```
 FlipDeck/
-├── pccontrol.c          # Main application source (v2)
+├── pccontrol.c          # Main application source (v2.1)
 ├── application.fam      # App manifest (name, id, icon, category)
 ├── flipdeck_icon.png    # 10×10 px 1-bit app icon
 ├── lang_en.json         # English UI strings reference
@@ -345,8 +396,10 @@ FlipDeck/
 
 SD Card (auto-created on first launch):
 /ext/apps_data/flip_deck/
-├── macros.txt           # Optional: 5 macro texts, one per line
-└── state.bin            # Last active page index (1 byte)
+├── macros_0.txt         # Profile 1 macro texts (5 lines)
+├── macros_1.txt         # Profile 2 macro texts
+├── macros_2.txt         # Profile 3 macro texts
+└── state.bin            # Last page index + active profile (2 bytes)
 ```
 
 ---
@@ -364,9 +417,9 @@ Contributions are welcome!
 - 🖼️ Figma / Canva shortcuts page
 - 🔢 Numpad page (`ActionTypeText` with digits)
 - 🌐 Multi-language support (new `lang_xx.json`)
-- 📱 In-app macro editor (Flipper `text_input` widget)
+- ✏️ Full 5-slot on-device editor (Left/Right/OK slots)
 - 🔵 BLE HID mode fallback when USB is disconnected
-- 🗂️ Profile system — multiple page sets selectable from menu
+- 🗂️ More profile slots (via SD config)
 
 ---
 
